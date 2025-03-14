@@ -35,7 +35,7 @@ export default function NavigationBarSection({ onJobSubmit }) {
   // React Query mutation for creating a job
   const createJobMutation = useMutation({
     mutationFn: async (newJob) => {
-      const response = await axios.post("http://localhost:3000/jobs", newJob);
+      const response = await axios.post("https://job-management-admin-backend.onrender.com/jobs", newJob);
       return response.data; // Return the newly created job
     },
     onSuccess: () => {

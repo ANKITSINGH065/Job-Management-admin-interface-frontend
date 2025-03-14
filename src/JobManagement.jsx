@@ -23,7 +23,7 @@ const JobManagement = () => {
   } = useQuery({
     queryKey: ["jobs", filters], // Unique key for this query
     queryFn: async () => {
-      const response = await axios.get("http://localhost:3000/jobs", {
+      const response = await axios.get("https://job-management-admin-backend.onrender.com/jobs", {
         params: filters,
       });
       return response.data; // Return the fetched data
@@ -33,7 +33,7 @@ const JobManagement = () => {
   // Mutation for creating a new job
   const createJobMutation = useMutation({
     mutationFn: async (newJob) => {
-      const response = await axios.post("http://localhost:3000/jobs", newJob);
+      const response = await axios.post("https://job-management-admin-backend.onrender.com/jobs", newJob);
       return response.data; // Return the newly created job
     },
     onSuccess: (newJob) => {

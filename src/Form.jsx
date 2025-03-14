@@ -27,7 +27,7 @@ export default function Form({ onClose, onJobSubmit }) {
   // React Query mutation for creating a job
   const createJobMutation = useMutation({
     mutationFn: async (formData) => {
-      const response = await axios.post("http://localhost:3000/jobs", formData, {
+      const response = await axios.post("https://job-management-admin-backend.onrender.com/jobs", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

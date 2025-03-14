@@ -29,11 +29,11 @@ const JobCreationForm = ({ onJobSubmit, currentJob, onCancelEdit }) => {
     try {
       if (currentJob) {
         await axios.put(
-          `http://localhost:3000/jobs/${currentJob.id}`,
+          `https://job-management-admin-backend.onrender.com/jobs/${currentJob.id}`,
           formData
         );
       } else {
-        await axios.post("http://localhost:3000/jobs", formData);
+        await axios.post("https://job-management-admin-backend.onrender.com/jobs", formData);
       }
       onJobSubmit();
     } catch (error) {
