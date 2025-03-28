@@ -1,5 +1,5 @@
 export const config = {
   backend: {
-    baseUrl: "http://localhost:3000",
+    baseUrl: "https://job-management-admin-backend.onrender.com",
   },
 };
