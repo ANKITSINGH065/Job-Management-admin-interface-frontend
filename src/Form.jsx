@@ -2,10 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import React, { useState, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import { config } from "./config/config";
 
 export default function Form({ onClose, onJobSubmit }) {
   const [jobData, setJobData] = useState({
@@ -22,27 +28,8 @@ export default function Form({ onClose, onJobSubmit }) {
 
   const [companyProfilePhoto, setCompanyProfilePhoto] = useState(null);
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const formRef = useRef(null);
-
-  // React Query mutation for creating a job
-  const createJobMutation = useMutation({
-    mutationFn: async (formData) => {
-      const response = await axios.post("https://job-management-admin-backend.onrender.com/jobs", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      return response.data; // Return the newly created job
-    },
-    onSuccess: (newJob) => {
-      console.log("Job created successfully:", newJob);
-      onJobSubmit(newJob); // Pass the new job data to the parent component
-      onClose(); // Close the form
-    },
-    onError: (error) => {
-      console.error("Error creating job:", error);
-    },
-  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -74,26 +61,46 @@ export default function Form({ onClose, onJobSubmit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!validateForm()) return;
 
-    const formData = new FormData();
+    setIsSubmitting(true);
 
-    // Append all form fields
+    const formData = new FormData();
     Object.entries(jobData).forEach(([key, value]) => {
       formData.append(key, value);
     });
 
-    // Append the file
     if (companyProfilePhoto) {
       formData.append("companyProfilePhoto", companyProfilePhoto);
     }
 
-    // Trigger the mutation
-    createJobMutation.mutate(formData);
+    try {
+      const response = await axios.post(
+        `${config.backend.baseUrl}/jobs`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      const newJob = response.data;
+      onJobSubmit(newJob);
+      onClose();
+    } catch (error) {
+      console.error("Error creating job:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClickOutside = (event) => {
-    if (formRef.current && !formRef.current.contains(event.target) && !event.target.closest(".select-content")) {
+    if (
+      formRef.current &&
+      !formRef.current.contains(event.target) &&
+      !event.target.closest(".select-content")
+    ) {
       onClose();
     }
   };
@@ -106,119 +113,179 @@ export default function Form({ onClose, onJobSubmit }) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
       <Card
         ref={formRef}
-        className="w-[848px] h-auto rounded-2xl overflow-hidden"
+        className="w-full max-w-4xl rounded-2xl overflow-y-auto max-h-[90vh]"
       >
-        <CardContent className="relative w-[768px] h-auto mt-[30px] mx-auto p-0">
-          <h1 className="text-center text-2xl font-bold text-[#222222] mb-8">
+        <CardContent className="relative w-full h-auto p-4 md:p-6 lg:p-8">
+          <h1 className="text-center text-xl md:text-2xl font-bold text-[#222222] mb-6 md:mb-8">
             Create Job Opening
           </h1>
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-            <Input
-              name="title"
-              value={jobData.title}
-              onChange={handleInputChange}
-              placeholder="Job Title"
-              className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4"
-            />
-            {errors.title && <p className="text-red-500 text-sm col-span-2">{errors.title}</p>}
-            <Input
-              name="companyName"
-              value={jobData.companyName}
-              onChange={handleInputChange}
-              placeholder="Company Name"
-              className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4"
-            />
-            {errors.companyName && <p className="text-red-500 text-sm col-span-2">{errors.companyName}</p>}
-            <Input
-              name="location"
-              value={jobData.location}
-              onChange={handleInputChange}
-              placeholder="Location"
-              className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4"
-            />
-            {errors.location && <p className="text-red-500 text-sm col-span-2">{errors.location}</p>}
-            <Select onValueChange={handleSelectChange}>
-              <SelectTrigger className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4">
-                <SelectValue placeholder="Job Type" />
-              </SelectTrigger>
-              <SelectContent className="select-content">
-                <SelectItem value="Full Time">Full Time</SelectItem>
-                <SelectItem value="Part Time">Part Time</SelectItem>
-                <SelectItem value="Internship">Internship</SelectItem>
-                <SelectItem value="Contract">Contract</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.jobType && <p className="text-red-500 text-sm col-span-2">{errors.jobType}</p>}
-            <Input
-              name="salaryRange"
-              value={jobData.salaryRange}
-              onChange={handleInputChange}
-              placeholder="Salary Range"
-              className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4"
-            />
-            {errors.salaryRange && <p className="text-red-500 text-sm col-span-2">{errors.salaryRange}</p>}
-            <Input
-              name="applicationDeadline"
-              value={jobData.applicationDeadline}
-              onChange={handleInputChange}
-              type="datetime-local"
-              className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4"
-            />
-            {errors.applicationDeadline && <p className="text-red-500 text-sm col-span-2">{errors.applicationDeadline}</p>}
-            <Textarea
-              name="description"
-              value={jobData.description}
-              onChange={handleInputChange}
-              placeholder="Job Description"
-              className="w-full h-[120px] rounded-[10px] border-[#bcbcbc] font-medium text-[#bcbcbc] p-4 resize-none"
-            />
-            {errors.description && <p className="text-red-500 text-sm col-span-2">{errors.description}</p>}
-            <Input
-              name="requirements"
-              value={jobData.requirements}
-              onChange={handleInputChange}
-              placeholder="Requirements"
-              className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4"
-            />
-            {errors.requirements && <p className="text-red-500 text-sm col-span-2">{errors.requirements}</p>}
-            <Input
-              name="responsibilities"
-              value={jobData.responsibilities}
-              onChange={handleInputChange}
-              placeholder="Responsibilities"
-              className="h-[58px] rounded-[10px] border-[#222222] font-bold text-lg px-4 py-4"
-            />
-            {errors.responsibilities && <p className="text-red-500 text-sm col-span-2">{errors.responsibilities}</p>}
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4">
+            {/* Job Title - Full width on all screens */}
+            <div className="md:col-span-2">
+              <Input
+                name="title"
+                value={jobData.title}
+                onChange={handleInputChange}
+                placeholder="Job Title"
+                className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4"
+              />
+              {errors.title && (
+                <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+              )}
+            </div>
+            
+            {/* Company Name */}
+            <div>
+              <Input
+                name="companyName"
+                value={jobData.companyName}
+                onChange={handleInputChange}
+                placeholder="Company Name"
+                className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4"
+              />
+              {errors.companyName && (
+                <p className="text-red-500 text-sm mt-1">{errors.companyName}</p>
+              )}
+            </div>
+            
+            {/* Location (Replaced Input with Select) */}
+            <div>
+              <Select onValueChange={(value) => handleInputChange({ target: { name: 'location', value } })}>
+                <SelectTrigger className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4">
+                  <SelectValue placeholder="Select Location" />
+                </SelectTrigger>
+                <SelectContent className="select-content">
+                  <SelectItem value="New York">New York</SelectItem>
+                  <SelectItem value="Los Angeles">Los Angeles</SelectItem>
+                  <SelectItem value="Chicago">Chicago</SelectItem>
+                  <SelectItem value="San Francisco">San Francisco</SelectItem>
+                  <SelectItem value="Austin">Austin</SelectItem>
+                  <SelectItem value="Seattle">Seattle</SelectItem>
+                  {/* Add other locations as needed */}
+                </SelectContent>
+              </Select>
+              {errors.location && (
+                <p className="text-red-500 text-sm mt-1">{errors.location}</p>
+              )}
+            </div>
+            
+            {/* Job Type */}
+            <div>
+              <Select onValueChange={handleSelectChange}>
+                <SelectTrigger className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4">
+                  <SelectValue placeholder="Job Type" />
+                </SelectTrigger>
+                <SelectContent className="select-content">
+                  <SelectItem value="Full Time">Full Time</SelectItem>
+                  <SelectItem value="Part Time">Part Time</SelectItem>
+                  <SelectItem value="Internship">Internship</SelectItem>
+                  <SelectItem value="Contract">Contract</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.jobType && (
+                <p className="text-red-500 text-sm mt-1">{errors.jobType}</p>
+              )}
+            </div>
+            
+            {/* Salary Range */}
+            <div>
+              <Input
+                name="salaryRange"
+                value={jobData.salaryRange}
+                onChange={handleInputChange}
+                placeholder="Salary Range"
+                className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4"
+              />
+              {errors.salaryRange && (
+                <p className="text-red-500 text-sm mt-1">{errors.salaryRange}</p>
+              )}
+            </div>
+            
+            {/* Application Deadline */}
+            <div>
+              <Input
+                name="applicationDeadline"
+                value={jobData.applicationDeadline}
+                onChange={handleInputChange}
+                type="datetime-local"
+                className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4"
+              />
+              {errors.applicationDeadline && (
+                <p className="text-red-500 text-sm mt-1">{errors.applicationDeadline}</p>
+              )}
+            </div>
+            
+            {/* Job Description - Full width on all screens */}
+            <div className="md:col-span-2">
+              <Textarea
+                name="description"
+                value={jobData.description}
+                onChange={handleInputChange}
+                placeholder="Job Description"
+                className="w-full h-32 md:h-[120px] rounded-lg md:rounded-[10px] border-[#bcbcbc] font-medium text-[#bcbcbc] p-3 md:p-4 resize-none"
+              />
+              {errors.description && (
+                <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+              )}
+            </div>
+            
+            {/* Requirements */}
+            <div>
+              <Input
+                name="requirements"
+                value={jobData.requirements}
+                onChange={handleInputChange}
+                placeholder="Requirements"
+                className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4"
+              />
+              {errors.requirements && (
+                <p className="text-red-500 text-sm mt-1">{errors.requirements}</p>
+              )}
+            </div>
+            
+            {/* Responsibilities */}
+            <div>
+              <Input
+                name="responsibilities"
+                value={jobData.responsibilities}
+                onChange={handleInputChange}
+                placeholder="Responsibilities"
+                className="w-full h-12 md:h-[58px] rounded-lg md:rounded-[10px] border-[#222222] font-bold text-base md:text-lg px-4 py-3 md:py-4"
+              />
+              {errors.responsibilities && (
+                <p className="text-red-500 text-sm mt-1">{errors.responsibilities}</p>
+              )}
+            </div>
 
-            {/* File Upload */}
-            <div className="flex flex-col gap-1.5 mt-4 col-span-2">
-              <label className="font-bold text-xl text-[#636363]">
+            {/* File Upload - Full width on all screens */}
+            <div className="flex flex-col gap-1.5 mt-2 md:mt-4 md:col-span-2">
+              <label className="font-bold text-lg md:text-xl text-[#636363]">
                 Company Profile Photo
               </label>
               <Input type="file" accept="image/*" onChange={handleFileChange} />
             </div>
 
-            {/* Action Buttons */}
-            <div className="col-span-2 flex justify-between mt-8">
+            {/* Action Buttons - Stacked vertically on small screens, side by side on larger screens */}
+            <div className="flex flex-col md:flex-row justify-between gap-4 mt-6 md:mt-8 md:col-span-2">
               <Button
                 type="button"
-                variant="lightBlue" 
-                className="px-[60px] py-4 rounded-[10px] border-[1.5px] border-[#222222] font-bold text-xl shadow-[0px_0px_4px_#00000040] flex items-center gap-2.5"
+                variant="lightBlue"
+                className="w-full md:w-auto px-4 md:px-[60px] py-3 md:py-4 rounded-lg md:rounded-[10px] border-[1.5px] border-[#222222] font-bold text-lg md:text-xl shadow-[0px_0px_4px_#00000040]"
                 onClick={onClose}
               >
                 Save Draft
               </Button>
               <Button
                 type="submit"
-                variant="lightBlue" 
-                className="px-[60px] py-4 rounded-[10px] bg-[#00aaff] font-bold text-xl flex items-center gap-2.5"
-                disabled={createJobMutation.isPending} // Disable button while mutation is in progress
+                variant="lightBlue"
+                className="w-full md:w-auto px-4 md:px-[60px] py-3 md:py-4 rounded-lg md:rounded-[10px] bg-[#00aaff] font-bold text-lg md:text-xl"
+                disabled={isSubmitting}
               >
-                {createJobMutation.isPending ? "Publishing..." : "Publish"}
+                {isSubmitting ? "Publishing..." : "Publish"}
               </Button>
             </div>
           </form>

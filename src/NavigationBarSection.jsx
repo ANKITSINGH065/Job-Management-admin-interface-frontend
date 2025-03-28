@@ -6,15 +6,16 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 import React, { useState } from "react";
-import Form from "./Form"; // Import the Form component
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import Form from "./Form";
 import axios from "axios";
+import logo from "@/assets/cybermind_works_logo.jpeg";
+import { config } from "./config/config";
+import { Menu, X } from "lucide-react"; // Import icons for mobile menu
 
 export default function NavigationBarSection({ onJobSubmit }) {
-  const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Navigation menu items data
   const navItems = [
     { label: "Home", href: "#" },
     { label: "Find Jobs", href: "#" },
@@ -23,53 +24,51 @@ export default function NavigationBarSection({ onJobSubmit }) {
     { label: "Testimonials", href: "#" },
   ];
 
-  // Function to toggle form visibility
-  const handleOpenForm = () => {
-    setIsFormOpen(true);
-  };
+  const handleOpenForm = () => setIsFormOpen(true);
+  const handleCloseForm = () => setIsFormOpen(false);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-  };
-
-  // React Query mutation for creating a job
-  const createJobMutation = useMutation({
-    mutationFn: async (newJob) => {
-      const response = await axios.post("https://job-management-admin-backend.onrender.com/jobs", newJob);
-      return response.data; // Return the newly created job
-    },
-    onSuccess: () => {
-      // Invalidate the "jobs" query to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: ["jobs"] });
-      handleCloseForm(); // Close the form after successful submission
-    },
-    onError: (error) => {
+  const handleJobSubmit = async (newJob) => {
+    try {
+      const response = await axios.post(`${config.backend.baseUrl}/jobs`, newJob);
+      const createdJob = response.data;
+      onJobSubmit(createdJob);
+      handleCloseForm();
+    } catch (error) {
       console.error("Error creating job:", error);
-    },
-  });
-
-  // Handle job submission
-  const handleJobSubmit = (newJob) => {
-    createJobMutation.mutate(newJob); // Trigger the mutation
+    }
   };
 
   return (
     <>
-      <nav className="w-full max-w-[890px] h-20 mx-auto bg-white rounded-[122px] border border-solid border-[#fcfcfc] shadow-[0px_0px_20px_#7f7f7f26] flex items-center px-6">
-        <div className="flex items-center justify-between w-full">
+      <nav className="w-full h-16 md:h-20 bg-white border-b border-solid border-[#fcfcfc] shadow-sm md:shadow-[0px_0px_20px_#7f7f7f26] md:rounded-[122px] md:max-w-[890px] md:mx-auto md:my-4 px-4 md:px-6">
+        <div className="flex items-center justify-between h-full">
           {/* Logo */}
-          <div className="w-11 h-[45px]">
-            <img src="../public/cybermind_works_logo.jpeg" alt="Logo" className="w-full h-full object-contain" />
+          <div className="w-9 h-9 md:w-11 md:h-[45px]">
+            <img 
+              src={logo} 
+              alt="Logo" 
+              className="w-full h-full object-contain" 
+            />
           </div>
 
-          {/* Navigation Menu */}
-          <NavigationMenu className="mx-4">
-            <NavigationMenuList className="flex items-center gap-2">
+          {/* Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            className="md:hidden p-2"
+            onClick={toggleMobileMenu}
+          >
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </Button>
+
+          {/* Desktop Navigation */}
+          <NavigationMenu className="hidden md:block mx-4">
+            <NavigationMenuList className="flex items-center gap-1 lg:gap-2">
               {navItems.map((item, index) => (
                 <NavigationMenuItem key={index}>
                   <NavigationMenuLink
                     href={item.href}
-                    className="inline-flex items-center justify-center px-6 py-2 font-bold text-base text-[#000000] rounded-[10px] hover:bg-gray-100 transition-colors"
+                    className="inline-flex items-center justify-center px-3 py-1 lg:px-6 lg:py-2 font-bold text-sm lg:text-base text-[#000000] rounded-[10px] hover:bg-gray-100 transition-colors"
                   >
                     {item.label}
                   </NavigationMenuLink>
@@ -81,16 +80,43 @@ export default function NavigationBarSection({ onJobSubmit }) {
           {/* Create Job Button */}
           <Button
             onClick={handleOpenForm}
-            className="px-6 py-2 rounded-[30px] font-bold text-base text-white bg-gradient-to-b from-[#a028ff] to-[#6000ac]"
+            className="hidden md:flex px-4 py-1 lg:px-6 lg:py-2 rounded-[30px] font-bold text-sm lg:text-base text-white bg-gradient-to-b from-[#a028ff] to-[#6000ac] hover:from-[#8a20e0] hover:to-[#4d0099]"
           >
             Create Jobs
           </Button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-16 left-0 right-0 bg-white shadow-lg z-40 p-4">
+            <div className="flex flex-col space-y-2">
+              {navItems.map((item, index) => (
+                <a
+                  key={index}
+                  href={item.href}
+                  className="px-4 py-3 font-medium text-gray-900 rounded-lg hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </a>
+              ))}
+              <Button
+                onClick={() => {
+                  handleOpenForm();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full mt-2 px-4 py-3 rounded-[30px] font-bold text-base text-white bg-gradient-to-b from-[#a028ff] to-[#6000ac]"
+              >
+                Create Jobs
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
 
-      {/* Render the Form component conditionally */}
+      {/* Job Form Modal */}
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <Form onClose={handleCloseForm} onJobSubmit={handleJobSubmit} />
         </div>
       )}
